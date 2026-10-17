@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block nav %}
+<nav class="nav" id="main-nav">
+    <div class="nav__container">
+        <a href="#" class="nav__logo">
+            <span class="nav__logo-icon">LS</span>
+            LabSphere
+        </a>
+        <button class="nav__toggle" aria-label="Toggle navigation" aria-expanded="false">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <ul class="nav__links">
+            <li><a href="#" class="nav__link">Home</a></li>
+            <li><a href="#aim" class="nav__link">Our Aim</a></li>
+            <li><a href="#auth" class="nav__cta">Login / Register</a></li>
+        </ul>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero" id="hero">
+    <div class="hero__container">
+        <!-- Left: Auth Panel -->
+        <div class="auth-panel" id="auth">
+            <div class="auth-panel__header">
+                <h1 class="auth-panel__title">Welcome to LabSphere</h1>
+                <p class="auth-panel__subtitle">Manage Labs. Track Progress. Build Skills.</p>
+            </div>
+
+            <!-- Role Slider Toggle -->
+            <div class="role-slider" id="role-slider">
+                <div class="role-slider__track">
+                    <div class="role-slider__indicator" id="role-indicator"></div>
+                    <button class="role-slider__option active" data-role="student" type="button">
+                        <span class="role-slider__icon">🎓</span>
+                        Student
+                    </button>
+                    <button class="role-slider__option" data-role="teacher" type="button">
+                        <span class="role-slider__icon">👨‍🏫</span>
+                        Teacher
+                    </button>
+                </div>
+            </div>
+
+            <!-- Student Login Form -->
+            <form class="auth-form active" id="student-login-form" data-role="student" data-mode="login" method="POST" action="{% url 'student_login' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="form-label" for="student-login-name">Full Name</label>
+                    <input class="form-input" type="text" id="student-login-name" name="name" placeholder="Enter your full name" required autocomplete="name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="student-login-batch">Batch</label>
+                    <input class="form-input" type="text" id="student-login-batch" name="batch" placeholder="e.g. BATCH 2025-29" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="student-login-roll">University Roll Number</label>
+                    <input class="form-input" type="text" id="student-login-roll" name="roll_number" placeholder="Enter your roll number" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="student-login-password">Password</label>
+                    <input class="form-input" type="password" id="student-login-password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full btn-lg">Sign In</button>
+                <p class="auth-switch-text">New here? <a href="#" class="auth-switch-link" data-target-mode="register">Register</a></p>
+            </form>
+
+            <!-- Student Register Form -->
+            <form class="auth-form" id="student-register-form" data-role="student" data-mode="register" method="POST" action="{% url 'student_register' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="form-label" for="student-reg-name">Full Name</label>
+                    <input class="form-input" type="text" id="student-reg-name" name="full_name" placeholder="Enter your full name" required autocomplete="name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="student-reg-roll">University Roll Number</label>
+                    <input class="form-input" type="text" id="student-reg-roll" name="roll_number" placeholder="Enter your roll number" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="student-reg-batch">Batch</label>
+                    <input class="form-input" type="text" id="student-reg-batch" name="batch" placeholder="e.g. BATCH 2025-29" required autocomplete="off">
+                    <p class="form-hint">Format: BATCH YYYY-YY (e.g. BATCH 2025-29, where 29 = last two digits of 2025+4)</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="student-reg-password">Password</label>
+                    <input class="form-input" type="password" id="student-reg-password" name="password" placeholder="Min 8 characters" required minlength="8" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="student-reg-confirm">Confirm Password</label>
+                    <input class="form-input" type="password" id="student-reg-confirm" name="confirm_password" placeholder="Re-enter your password" required autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full btn-lg">Create Account</button>
+                <p class="auth-switch-text">Already have an account? <a href="#" class="auth-switch-link" data-target-mode="login">Login</a></p>
+            </form>
+
+            <!-- Teacher Login Form -->
+            <form class="auth-form" id="teacher-login-form" data-role="teacher" data-mode="login" method="POST" action="{% url 'teacher_login' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="form-label" for="teacher-login-name">Full Name</label>
+                    <input class="form-input" type="text" id="teacher-login-name" name="name" placeholder="Enter your full name" required autocomplete="name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="teacher-login-id">Teacher ID</label>
+                    <input class="form-input" type="text" id="teacher-login-id" name="teacher_id" placeholder="Enter your Teacher ID" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="teacher-login-password">Password</label>
+                    <input class="form-input" type="password" id="teacher-login-password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full btn-lg">Sign In</button>
+                <p class="auth-switch-text">New here? <a href="#" class="auth-switch-link" data-target-mode="register">Register</a></p>
+            </form>
+
+            <!-- Teacher Register Form -->
+            <form class="auth-form" id="teacher-register-form" data-role="teacher" data-mode="register" method="POST" action="{% url 'teacher_register' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="form-label" for="teacher-reg-id">Teacher ID</label>
+                    <input class="form-input" type="text" id="teacher-reg-id" name="teacher_id" placeholder="Enter your Teacher ID" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="teacher-reg-name">Full Name</label>
+                    <input class="form-input" type="text" id="teacher-reg-name" name="full_name" placeholder="Enter your full name" required autocomplete="name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="teacher-reg-password">Password</label>
+                    <input class="form-input" type="password" id="teacher-reg-password" name="password" placeholder="Min 8 characters" required minlength="8" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="teacher-reg-confirm">Confirm Password</label>
+                    <input class="form-input" type="password" id="teacher-reg-confirm" name="confirm_password" placeholder="Re-enter your password" required autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="teacher-reg-code">Registration Code</label>
+                    <input class="form-input" type="password" id="teacher-reg-code" name="registration_code" placeholder="Administrator-provided code" required autocomplete="off">
+                    <p class="form-hint">Contact your administrator for the registration code.</p>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full btn-lg">Create Account</button>
+                <p class="auth-switch-text">Already have an account? <a href="#" class="auth-switch-link" data-target-mode="login">Login</a></p>
+            </form>
+        </div>
+
+        <!-- Right: Hero Visual -->
+        <div class="hero__visual">
+            <div>
+                <img src="{% static 'images/hero.png' %}" alt="Students working in a modern computer laboratory" class="hero__image">
+                <div class="hero__tagline">
+                    <h2>Your Lab, Simplified</h2>
+                    <p>A modern platform for managing college laboratories, tracking progress, and building skills.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Our Aim Section -->
+<section class="aim-section" id="aim">
+    <div class="aim-section__container">
+        <span class="aim-section__badge">🎯 Our Mission</span>
+        <h2>Our Aim</h2>
+        <p class="aim-section__text">
+            LabSphere aims to simplify college lab administration by bringing student authentication,
+            attendance tracking, coding assessments, and performance analytics into one organized platform.
+            We are building a system where educators and students can focus on what matters most — teaching and learning.
+        </p>
+
+        <div class="aim-section__features">
+            <div class="aim-feature">
+                <div class="aim-feature__icon">🔐</div>
+                <h3>Secure Authentication</h3>
+                <p>Role-based access for students and teachers with secure credential management.</p>
+            </div>
+            <div class="aim-feature">
+                <div class="aim-feature__icon">📊</div>
+                <h3>Progress Tracking</h3>
+                <p>Monitor lab performance, attendance, and skill development over time.</p>
+            </div>
+            <div class="aim-feature">
+                <div class="aim-feature__icon">💻</div>
+                <h3>Lab Management</h3>
+                <p>Streamline lab sessions, assignments, and assessments in one place.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="footer__container">
+        <div class="footer__brand">
+            <h3>LabSphere</h3>
+            <p>A professional College Lab Management System designed to simplify lab administration and empower students and educators.</p>
+        </div>
+        <div class="footer__section">
+            <h4>Navigation</h4>
+            <ul class="footer__links">
+                <li><a href="#" class="footer__link">Home</a></li>
+                <li><a href="#aim" class="footer__link">Our Aim</a></li>
+                <li><a href="#auth" class="footer__link">Login / Register</a></li>
+            </ul>
+        </div>
+        <div class="footer__section">
+            <h4>Platform</h4>
+            <ul class="footer__links">
+                <li><a href="#auth" class="footer__link">Student Portal</a></li>
+                <li><a href="#auth" class="footer__link">Teacher Portal</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer__bottom">
+        <p>&copy; 2025 LabSphere. All rights reserved.</p>
+    </div>
+</footer>
+{% endblock %}

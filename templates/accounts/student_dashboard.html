@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Student Dashboard — LabSphere{% endblock %}
+
+{% block nav %}
+<nav class="nav scrolled" id="main-nav">
+    <div class="nav__container">
+        <a href="/" class="nav__logo">
+            <span class="nav__logo-icon">LS</span>
+            LabSphere
+        </a>
+        <ul class="nav__links">
+            <li><span class="nav__link" style="cursor: default;">{{ profile.full_name }}</span></li>
+            <li><a href="{% url 'logout' %}" class="nav__cta">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard__container">
+        <div class="dashboard__header">
+            <div class="dashboard__welcome">
+                <h1>{{ profile.full_name }}</h1>
+                <p>You entered student dashboard</p>
+            </div>
+            <a href="{% url 'logout' %}" class="btn btn-outline">Logout</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
