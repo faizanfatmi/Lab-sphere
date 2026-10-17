@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
@@ -15,6 +16,22 @@ def validate_batch_format(batch):
     # The end suffix should be the last 2 digits of (start_year + 4)
     expected_suffix = (start_year + 4) % 100
     return end_suffix == expected_suffix
+
+
+def get_batch_choices():
+    """
+    Dynamically generate batch choices based on the current year.
+    Each batch spans 4 years (e.g., BATCH 2025-29).
+    Generates batches from 3 years ago up to the current year,
+    so older students can still be found while new batches are available.
+    """
+    current_year = datetime.now().year
+    choices = [('', '-- Select Batch --')]
+    for start_year in range(current_year - 3, current_year + 1):
+        end_suffix = (start_year + 4) % 100
+        batch_label = f"BATCH {start_year}-{end_suffix:02d}"
+        choices.append((batch_label, batch_label))
+    return choices
 
 
 class UserManager(BaseUserManager):

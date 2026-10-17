@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Override Attendance — LabSphere{% endblock %}
+
+{% block content %}
+<div class="dashboard" style="display: flex; align-items: center; justify-content: center;">
+    <div class="card" style="max-width: 550px; width: 90%; padding: var(--space-8);">
+        <div class="card__header">
+            <div>
+                <h2 class="card__title">Manual Attendance Override</h2>
+                <p style="font-size: var(--font-size-xs); color: var(--color-text-muted);">
+                    Student: <strong>{{ student.full_name }}</strong> (Roll: {{ student.roll_number }})
+                </p>
+            </div>
+            <a href="{% url 'session_detail' session.id %}" class="btn btn-outline" style="padding: 4px 8px; font-size: var(--font-size-xs);">✕</a>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label" for="id_status">Attendance Status *</label>
+                {{ form.status }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="id_override_reason">Mandatory Audit Reason *</label>
+                {{ form.override_reason }}
+                <p class="form-hint">Please provide an administrative reason for manually correcting attendance (e.g. system timeout, verified lab presence by instructor, medical excuse).</p>
+                {% if form.override_reason.errors %}
+                    <p class="form-hint" style="color: var(--color-error);">{{ form.override_reason.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div style="display: flex; gap: var(--space-3); margin-top: var(--space-6);">
+                <button type="submit" class="btn btn-primary btn-full">Save Correction & Audit Log</button>
+                <a href="{% url 'session_detail' session.id %}" class="btn btn-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

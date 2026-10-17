@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ assessment.title }} — LabSphere{% endblock %}
+
+{% block nav %}
+<nav class="nav scrolled" id="main-nav">
+    <div class="nav__container">
+        <a href="{% url 'teacher_dashboard' %}" class="nav__logo">
+            <span class="nav__logo-icon">LS</span>
+            LabSphere
+        </a>
+        <ul class="nav__links">
+            <li>
+                <button type="button" class="theme-toggle" aria-label="Toggle theme">
+                    <span class="theme-toggle__icon">🌙</span>
+                    <span class="theme-toggle__text">Dark</span>
+                </button>
+            </li>
+            <li><a href="{% url 'assessment_list' %}" class="nav__link">Assessments</a></li>
+            <li><a href="{% url 'teacher_dashboard' %}" class="nav__link">Dashboard</a></li>
+            <li><a href="{% url 'logout' %}" class="nav__cta">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard__container">
+        <!-- Header -->
+        <div class="dashboard__header">
+            <div class="dashboard__welcome">
+                <div style="display: flex; gap: var(--space-2); align-items: center; margin-bottom: var(--space-2);">
+                    {% if assessment.is_published %}
+                        <span class="badge badge--success">Published</span>
+                    {% else %}
+                        <span class="badge badge--neutral">Draft</span>
+                    {% endif %}
+                    {% if assessment.is_currently_active %}
+                        <span class="badge badge--info">Live Assessment</span>
+                    {% endif %}
+                    <span class="badge badge--neutral">{{ assessment.assigned_batch }}</span>
+                </div>
+                <h1>{{ assessment.title }}</h1>
+                <p>
+                    Duration: <strong>{{ assessment.duration_minutes }} mins</strong> &nbsp;|&nbsp;
+                    Schedule: <strong>{{ assessment.start_time|date:"M d, H:i" }} &rarr; {{ assessment.end_time|date:"M d, H:i" }}</strong> &nbsp;|&nbsp;
+                    Passing Marks: <strong>{{ assessment.pass_marks }}</strong>
+                </p>
+            </div>
+            <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+                <a href="{% url 'question_create' assessment.id %}" class="btn btn-primary">+ Add Coding Question</a>
+                <a href="{% url 'assessment_submissions' assessment.id %}" class="btn btn-outline">Submissions ({{ submissions_count }})</a>
+                <a href="{% url 'assessment_toggle_publish' assessment.id %}" class="btn btn-outline">
+                    {% if assessment.is_published %}Unpublish{% else %}Publish Assessment{% endif %}
+                </a>
+                <a href="{% url 'assessment_edit' assessment.id %}" class="btn btn-outline">Edit Settings</a>
+                <a href="{% url 'assessment_delete' assessment.id %}" class="btn btn-outline" style="color: var(--color-error); border-color: var(--color-error);">Delete</a>
+            </div>
+        </div>
+
+        <!-- Metrics Row -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-card__label">Total Questions</span>
+                <span class="stat-card__value">{{ questions|length }}</span>
+                <span class="stat-card__subtext">Configured in this assessment</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card__label">Maximum Total Marks</span>
+                <span class="stat-card__value" style="color: var(--color-accent);">{{ assessment.total_marks }}</span>
+                <span class="stat-card__subtext">Sum of question weights</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card__label">Student Attempts</span>
+                <span class="stat-card__value">{{ attempts_count }}</span>
+                <span class="stat-card__subtext">Students from {{ assessment.assigned_batch }}</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card__label">Total Submissions</span>
+                <span class="stat-card__value">{{ submissions_count }}</span>
+                <span class="stat-card__subtext">Code evaluations recorded</span>
+            </div>
+        </div>
+
+        <!-- Questions List Section -->
+        <div class="card">
+            <div class="card__header">
+                <div>
+                    <h2 class="card__title">Coding Questions</h2>
+                    <p style="font-size: var(--font-size-xs); color: var(--color-text-muted);">
+                        Problems are displayed to students in ascending order of points. Click "Edit Question & Test Cases" to add visible sample tests and private grading tests.
+                    </p>
+                </div>
+                <a href="{% url 'question_create' assessment.id %}" class="btn btn-primary" style="padding: 6px 14px; font-size: var(--font-size-xs);">+ Add Question</a>
+            </div>
+
+            {% if questions %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Question Title</th>
+                                <th>Difficulty</th>
+                                <th>Max Marks</th>
+                                <th>Sample Cases</th>
+                                <th>Private Cases</th>
+                                <th>Languages</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for q in questions %}
+                            <tr>
+                                <td><strong>{{ q.order }}</strong></td>
+                                <td>
+                                    <strong>{{ q.title }}</strong>
+                                    <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">
+                                        Time Limit: {{ q.time_limit_seconds }}s | Memory: {{ q.memory_limit_mb }}MB
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if q.difficulty == 'EASY' %}
+                                        <span class="badge badge--success">Easy</span>
+                                    {% elif q.difficulty == 'MEDIUM' %}
+                                        <span class="badge badge--warning">Medium</span>
+                                    {% else %}
+                                        <span class="badge badge--error">Hard</span>
+                                    {% endif %}
+                                </td>
+                                <td><strong>{{ q.max_marks }}</strong> pts</td>
+                                <td>{{ q.sample_test_cases.count }} Visible</td>
+                                <td>{{ q.private_test_cases.count }} Private</td>
+                                <td><span class="badge badge--neutral">{{ q.allowed_languages|upper }}</span></td>
+                                <td>
+                                    <div style="display: flex; gap: var(--space-2);">
+                                        <a href="{% url 'question_edit' q.id %}" class="btn btn-primary" style="padding: 4px 10px; font-size: var(--font-size-xs);">
+                                            Edit & Tests
+                                        </a>
+                                        <a href="{% url 'question_delete' q.id %}" class="btn btn-outline" style="padding: 4px 10px; font-size: var(--font-size-xs); color: var(--color-error);">
+                                            Delete
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div style="text-align: center; padding: var(--space-10); color: var(--color-text-muted);">
+                    <p style="margin-bottom: var(--space-4);">No coding questions added to this assessment yet.</p>
+                    <a href="{% url 'question_create' assessment.id %}" class="btn btn-primary">+ Add First Question</a>
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

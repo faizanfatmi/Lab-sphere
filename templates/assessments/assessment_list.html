@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Assessments Management — LabSphere{% endblock %}
+
+{% block nav %}
+<nav class="nav scrolled" id="main-nav">
+    <div class="nav__container">
+        <a href="{% url 'teacher_dashboard' %}" class="nav__logo">
+            <span class="nav__logo-icon">LS</span>
+            LabSphere
+        </a>
+        <ul class="nav__links">
+            <li>
+                <button type="button" class="theme-toggle" aria-label="Toggle theme">
+                    <span class="theme-toggle__icon">🌙</span>
+                    <span class="theme-toggle__text">Dark</span>
+                </button>
+            </li>
+            <li><a href="{% url 'teacher_dashboard' %}" class="nav__link">Dashboard</a></li>
+            <li><a href="{% url 'session_list' %}" class="nav__link">Lab Sessions</a></li>
+            <li><a href="{% url 'logout' %}" class="nav__cta">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard__container">
+        <div class="dashboard__header">
+            <div class="dashboard__welcome">
+                <h1>Assessments Management</h1>
+                <p>Manage, publish, and monitor coding examinations for your batches.</p>
+            </div>
+            <div style="display: flex; gap: var(--space-3); align-items: center;">
+                <a href="{% url 'assessment_create' %}" class="btn btn-primary">+ Create New Assessment</a>
+                <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline">Back to Dashboard</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card__header">
+                <h2 class="card__title">All Assessments ({{ assessments|length }})</h2>
+            </div>
+            {% if assessments %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Assessment Title</th>
+                                <th>Assigned Batch</th>
+                                <th>Questions</th>
+                                <th>Total Marks</th>
+                                <th>Schedule Window</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for asm in assessments %}
+                            <tr>
+                                <td>
+                                    <strong>{{ asm.title }}</strong>
+                                    {% if asm.lab %}<div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">{{ asm.lab.name }}</div>{% endif %}
+                                </td>
+                                <td><span class="badge badge--neutral">{{ asm.assigned_batch }}</span></td>
+                                <td>{{ asm.q_count }} Questions</td>
+                                <td><strong>{{ asm.total_marks }}</strong> pts</td>
+                                <td>
+                                    <div style="font-size: var(--font-size-xs);">
+                                        {{ asm.start_time|date:"M d, H:i" }} &rarr; {{ asm.end_time|date:"M d, H:i" }}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if asm.is_archived %}
+                                        <span class="badge badge--neutral">Archived</span>
+                                    {% elif asm.is_currently_active %}
+                                        <span class="badge badge--success">Active Now</span>
+                                    {% elif asm.is_upcoming %}
+                                        <span class="badge badge--info">Upcoming</span>
+                                    {% elif asm.is_expired %}
+                                        <span class="badge badge--warning">Expired</span>
+                                    {% elif not asm.is_published %}
+                                        <span class="badge badge--neutral">Draft</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: var(--space-2);">
+                                        <a href="{% url 'assessment_detail' asm.id %}" class="btn btn-primary" style="padding: 4px 10px; font-size: var(--font-size-xs);">Manage</a>
+                                        <a href="{% url 'assessment_submissions' asm.id %}" class="btn btn-outline" style="padding: 4px 10px; font-size: var(--font-size-xs);">Submissions</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div style="text-align: center; padding: var(--space-10); color: var(--color-text-muted);">
+                    <p>No assessments created yet. Click "+ Create New Assessment" to build your first coding test.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

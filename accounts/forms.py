@@ -1,5 +1,5 @@
 from django import forms
-from .models import User, StudentProfile, TeacherProfile, validate_batch_format
+from .models import User, StudentProfile, TeacherProfile, validate_batch_format, get_batch_choices
 
 
 class StudentRegistrationForm(forms.Form):
@@ -11,10 +11,14 @@ class StudentRegistrationForm(forms.Form):
         max_length=50,
         widget=forms.TextInput(attrs={'placeholder': 'University Roll Number', 'autocomplete': 'off'})
     )
-    batch = forms.CharField(
-        max_length=20,
-        widget=forms.TextInput(attrs={'placeholder': 'e.g. BATCH 2025-29', 'autocomplete': 'off'})
+    batch = forms.ChoiceField(
+        choices=[],
+        widget=forms.Select(attrs={'class': 'form-input'})
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['batch'].choices = get_batch_choices()
     password = forms.CharField(
         min_length=8,
         widget=forms.PasswordInput(attrs={'placeholder': 'Password (min 8 characters)', 'autocomplete': 'new-password'})
@@ -70,10 +74,14 @@ class StudentLoginForm(forms.Form):
         max_length=200,
         widget=forms.TextInput(attrs={'placeholder': 'Full Name', 'autocomplete': 'name'})
     )
-    batch = forms.CharField(
-        max_length=20,
-        widget=forms.TextInput(attrs={'placeholder': 'e.g. BATCH 2025-29', 'autocomplete': 'off'})
+    batch = forms.ChoiceField(
+        choices=[],
+        widget=forms.Select(attrs={'class': 'form-input'})
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['batch'].choices = get_batch_choices()
     roll_number = forms.CharField(
         max_length=50,
         widget=forms.TextInput(attrs={'placeholder': 'University Roll Number', 'autocomplete': 'off'})

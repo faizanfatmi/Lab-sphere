@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Laboratory Sessions — LabSphere{% endblock %}
+
+{% block nav %}
+<nav class="nav scrolled" id="main-nav">
+    <div class="nav__container">
+        <a href="{% url 'teacher_dashboard' %}" class="nav__logo">
+            <span class="nav__logo-icon">LS</span>
+            LabSphere
+        </a>
+        <ul class="nav__links">
+            <li>
+                <button type="button" class="theme-toggle" aria-label="Toggle theme">
+                    <span class="theme-toggle__icon">🌙</span>
+                    <span class="theme-toggle__text">Dark</span>
+                </button>
+            </li>
+            <li><a href="{% url 'teacher_dashboard' %}" class="nav__link">Teacher Dashboard</a></li>
+            <li><a href="{% url 'assessment_list' %}" class="nav__link">Assessments</a></li>
+            <li><a href="{% url 'logout' %}" class="nav__cta">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard__container">
+        <div class="dashboard__header">
+            <div class="dashboard__welcome">
+                <h1>Laboratory Sessions</h1>
+                <p>Manage real-time lab check-ins, scheduled sessions, and attendance reports.</p>
+            </div>
+            <div style="display: flex; gap: var(--space-3); align-items: center;">
+                <a href="{% url 'session_create' %}" class="btn btn-primary">+ Schedule New Session</a>
+                <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline">Back to Dashboard</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card__header">
+                <h2 class="card__title">Scheduled Sessions ({{ sessions|length }})</h2>
+            </div>
+            {% if sessions %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Lab</th>
+                                <th>Session Title</th>
+                                <th>Batch</th>
+                                <th>Date</th>
+                                <th>Time Window</th>
+                                <th>PIN Required</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sess in sessions %}
+                            <tr>
+                                <td><strong>{{ sess.lab.code }}</strong></td>
+                                <td><strong>{{ sess.session_title }}</strong></td>
+                                <td><span class="badge badge--neutral">{{ sess.batch }}</span></td>
+                                <td>{{ sess.date|date:"M d, Y" }}</td>
+                                <td>{{ sess.start_time|time:"H:i" }} &rarr; {{ sess.end_time|time:"H:i" }}</td>
+                                <td>
+                                    {% if sess.verification_code %}
+                                        <span class="badge badge--info">{{ sess.verification_code }}</span>
+                                    {% else %}
+                                        <span style="color: var(--color-text-muted);">None</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if sess.is_currently_open %}
+                                        <span class="badge badge--success">🔴 Active Now</span>
+                                    {% elif sess.is_active %}
+                                        <span class="badge badge--neutral">Scheduled</span>
+                                    {% else %}
+                                        <span class="badge badge--error">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: var(--space-2);">
+                                        <a href="{% url 'session_detail' sess.id %}" class="btn btn-primary" style="padding: 4px 10px; font-size: var(--font-size-xs);">Attendance</a>
+                                        <a href="{% url 'attendance_export' sess.id %}" class="btn btn-outline" style="padding: 4px 10px; font-size: var(--font-size-xs);">Export CSV</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div style="text-align: center; padding: var(--space-10); color: var(--color-text-muted);">
+                    <p style="margin-bottom: var(--space-4);">No laboratory sessions scheduled yet.</p>
+                    <a href="{% url 'session_create' %}" class="btn btn-primary">+ Schedule First Session</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

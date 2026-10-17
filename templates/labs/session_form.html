@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} — LabSphere{% endblock %}
+
+{% block nav %}
+<nav class="nav scrolled" id="main-nav">
+    <div class="nav__container">
+        <a href="{% url 'teacher_dashboard' %}" class="nav__logo">
+            <span class="nav__logo-icon">LS</span>
+            LabSphere
+        </a>
+        <ul class="nav__links">
+            <li>
+                <button type="button" class="theme-toggle" aria-label="Toggle theme">
+                    <span class="theme-toggle__icon">🌙</span>
+                    <span class="theme-toggle__text">Dark</span>
+                </button>
+            </li>
+            <li><a href="{% url 'session_list' %}" class="nav__link">Lab Sessions</a></li>
+            <li><a href="{% url 'logout' %}" class="nav__cta">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard__container" style="max-width: 750px;">
+        <div class="dashboard__header">
+            <div class="dashboard__welcome">
+                <h1>{{ title }}</h1>
+                <p>Schedule a new laboratory practical session for student attendance check-in.</p>
+            </div>
+            <a href="{% url 'session_list' %}" class="btn btn-outline">Cancel</a>
+        </div>
+
+        <div class="card">
+            <form method="POST">
+                {% csrf_token %}
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+                    <div class="form-group">
+                        <label class="form-label" for="id_lab">Laboratory Course *</label>
+                        {{ form.lab }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="id_batch">Batch *</label>
+                        {{ form.batch }}
+                        <p class="form-hint">e.g. BATCH 2025-29</p>
+                        {% if form.batch.errors %}<p class="form-hint" style="color: var(--color-error);">{{ form.batch.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_session_title">Session Title / Topic *</label>
+                    {{ form.session_title }}
+                    {% if form.session_title.errors %}<p class="form-hint" style="color: var(--color-error);">{{ form.session_title.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-4);">
+                    <div class="form-group">
+                        <label class="form-label" for="id_date">Date *</label>
+                        {{ form.date }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="id_start_time">Start Time *</label>
+                        {{ form.start_time }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="id_end_time">End Time *</label>
+                        {{ form.end_time }}
+                        {% if form.end_time.errors %}<p class="form-hint" style="color: var(--color-error);">{{ form.end_time.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_verification_code">Optional Verification PIN (Device Security)</label>
+                    {{ form.verification_code }}
+                    <p class="form-hint">If specified, students must enter this 6-digit PIN on the lab computer to check in.</p>
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-4);">
+                    {{ form.is_active }}
+                    <label for="id_is_active" style="font-weight: 600; cursor: pointer;">Session Active (Allows attendance within time window)</label>
+                </div>
+
+                <div style="display: flex; gap: var(--space-3); margin-top: var(--space-6);">
+                    <button type="submit" class="btn btn-primary btn-lg">Schedule Session</button>
+                    <a href="{% url 'session_list' %}" class="btn btn-outline btn-lg">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

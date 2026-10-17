@@ -160,4 +160,55 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
+
+  // ===== Theme Toggle System =====
+  function getPreferredTheme() {
+    var stored = localStorage.getItem('labsphere_theme');
+    if (stored) return stored;
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('labsphere_theme', theme);
+    var toggles = document.querySelectorAll('.theme-toggle');
+    toggles.forEach(function (btn) {
+      btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+      var icon = btn.querySelector('.theme-toggle__icon');
+      if (icon) {
+        icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+      }
+      var text = btn.querySelector('.theme-toggle__text');
+      if (text) {
+        text.textContent = theme === 'dark' ? 'Light' : 'Dark';
+      }
+    });
+
+    // Synchronize Monaco editor if open
+    if (window.monaco && window.monacoEditorInstance) {
+      window.monaco.editor.setTheme(theme === 'dark' ? 'vs-dark' : 'vs');
+    }
+  }
+
+  // Initialize theme icons
+  applyTheme(getPreferredTheme());
+
+  // Attach click listeners to all theme toggle buttons
+  document.addEventListener('click', function(e) {
+    var toggleBtn = e.target.closest('.theme-toggle');
+    if (toggleBtn) {
+      var current = document.documentElement.getAttribute('data-theme') || 'light';
+      var next = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+    }
+  });
+
+  // Listen for OS system theme changes if not overridden
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+      if (!localStorage.getItem('labsphere_theme')) {
+        applyTheme(e.matches ? 'dark' : 'light');
+      }
+    });
+  }
 });

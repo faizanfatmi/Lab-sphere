@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ session.session_title }} Attendance — LabSphere{% endblock %}
+
+{% block nav %}
+<nav class="nav scrolled" id="main-nav">
+    <div class="nav__container">
+        <a href="{% url 'teacher_dashboard' %}" class="nav__logo">
+            <span class="nav__logo-icon">LS</span>
+            LabSphere
+        </a>
+        <ul class="nav__links">
+            <li>
+                <button type="button" class="theme-toggle" aria-label="Toggle theme">
+                    <span class="theme-toggle__icon">🌙</span>
+                    <span class="theme-toggle__text">Dark</span>
+                </button>
+            </li>
+            <li><a href="{% url 'session_list' %}" class="nav__link">All Sessions</a></li>
+            <li><a href="{% url 'teacher_dashboard' %}" class="nav__link">Dashboard</a></li>
+            <li><a href="{% url 'logout' %}" class="nav__cta">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard__container">
+        <div class="dashboard__header">
+            <div class="dashboard__welcome">
+                <div style="display: flex; gap: var(--space-2); align-items: center; margin-bottom: var(--space-2);">
+                    <span class="badge badge--neutral">{{ session.lab.code }}</span>
+                    <span class="badge badge--neutral">{{ session.batch }}</span>
+                    {% if session.is_currently_open %}
+                        <span class="badge badge--success">🔴 Active Now</span>
+                    {% endif %}
+                </div>
+                <h1>{{ session.session_title }}</h1>
+                <p>
+                    Date: <strong>{{ session.date|date:"F d, Y" }}</strong> &nbsp;|&nbsp;
+                    Time: <strong>{{ session.start_time|time:"H:i" }} &rarr; {{ session.end_time|time:"H:i" }}</strong>
+                    {% if session.verification_code %}&nbsp;|&nbsp; PIN: <strong>{{ session.verification_code }}</strong>{% endif %}
+                </p>
+            </div>
+            <div style="display: flex; gap: var(--space-3); align-items: center;">
+                <a href="{% url 'attendance_export' session.id %}" class="btn btn-primary">⬇ Export CSV Report</a>
+                <a href="{% url 'session_list' %}" class="btn btn-outline">&larr; Back to Sessions</a>
+            </div>
+        </div>
+
+        <!-- Attendance Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-card__label">Attendance Rate</span>
+                <span class="stat-card__value" style="color: {% if attendance_rate >= 75 %}var(--color-success){% else %}var(--color-warning){% endif %};">
+                    {{ attendance_rate }}%
+                </span>
+                <span class="stat-card__subtext">Based on enrolled batch list</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card__label">Present Students</span>
+                <span class="stat-card__value" style="color: var(--color-success);">{{ present_count }}</span>
+                <span class="stat-card__subtext">Checked in successfully</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card__label">Absent Students</span>
+                <span class="stat-card__value" style="color: var(--color-error);">{{ absent_count }}</span>
+                <span class="stat-card__subtext">Pending / Unrecorded check-in</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card__label">Total Enrolled</span>
+                <span class="stat-card__value">{{ total_students }}</span>
+                <span class="stat-card__subtext">Batch {{ session.batch }} roster</span>
+            </div>
+        </div>
+
+        <!-- Attendance Table -->
+        <div class="card">
+            <div class="card__header">
+                <div>
+                    <h2 class="card__title">Student Attendance Roster</h2>
+                    <p style="font-size: var(--font-size-xs); color: var(--color-text-muted);">
+                        Check-ins are recorded with server timestamps, client IPs, and device user-agents. Teachers may perform authorized manual corrections with audit logging.
+                    </p>
+                </div>
+            </div>
+
+            {% if student_records %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Roll Number</th>
+                                <th>Full Name</th>
+                                <th>Batch</th>
+                                <th>Status</th>
+                                <th>Check-In Time</th>
+                                <th>Audit Reason / Override</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rec in student_records %}
+                            <tr>
+                                <td><strong>{{ rec.student.roll_number }}</strong></td>
+                                <td>{{ rec.student.full_name }}</td>
+                                <td><span class="badge badge--neutral">{{ rec.student.batch }}</span></td>
+                                <td>
+                                    {% if rec.status == 'PRESENT' %}
+                                        <span class="badge badge--success">Present</span>
+                                    {% elif rec.status == 'LATE' %}
+                                        <span class="badge badge--warning">Late</span>
+                                    {% else %}
+                                        <span class="badge badge--error">Absent</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if rec.checked_in_at %}
+                                        {{ rec.checked_in_at|date:"H:i:s" }}
+                                    {% else %}
+                                        <span style="color: var(--color-text-muted);">—</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-size: var(--font-size-xs); color: var(--color-text-muted);">
+                                    {% if rec.manual_override %}
+                                        <span class="badge badge--warning">Overridden</span>
+                                        <div style="margin-top: 2px;">{{ rec.override_reason }}</div>
+                                    {% else %}
+                                        Server Verified
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'attendance_override' session.id rec.student.id %}" class="btn btn-outline" style="padding: 4px 10px; font-size: var(--font-size-xs);">
+                                        Edit / Override
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p style="text-align: center; color: var(--color-text-muted); padding: var(--space-8);">
+                    No students currently registered for batch {{ session.batch }}.
+                </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

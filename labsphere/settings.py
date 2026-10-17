@@ -20,6 +20,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'accounts',
+    'labs',
+    'assessments',
 ]
 
 MIDDLEWARE = [
@@ -95,3 +97,9 @@ TEACHER_REGISTRATION_SECRET = os.environ.get('TEACHER_REGISTRATION_SECRET', 'lab
 
 # Login URL
 LOGIN_URL = '/'
+
+# Code Execution Service Configuration
+JUDGE0_API_URL = os.environ.get('JUDGE0_API_URL', 'https://judge0-ce.p.rapidapi.com')
+JUDGE0_API_KEY = os.environ.get('JUDGE0_API_KEY', '')
+JUDGE0_API_HOST = os.environ.get('JUDGE0_API_HOST', 'judge0-ce.p.rapidapi.com')
+EXECUTION_SERVICE_MODE = os.environ.get('EXECUTION_SERVICE_MODE', 'sandbox') # 'judge0', 'sandbox', 'mock'

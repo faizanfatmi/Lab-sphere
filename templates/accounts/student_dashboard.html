@@ -6,12 +6,18 @@
 {% block nav %}
 <nav class="nav scrolled" id="main-nav">
     <div class="nav__container">
-        <a href="/" class="nav__logo">
+        <a href="{% url 'student_dashboard' %}" class="nav__logo">
             <span class="nav__logo-icon">LS</span>
             LabSphere
         </a>
         <ul class="nav__links">
-            <li><span class="nav__link" style="cursor: default;">{{ profile.full_name }}</span></li>
+            <li>
+                <button type="button" class="theme-toggle" aria-label="Toggle theme">
+                    <span class="theme-toggle__icon">🌙</span>
+                    <span class="theme-toggle__text">Dark</span>
+                </button>
+            </li>
+            <li><span class="nav__link" style="cursor: default; font-weight: 600;">{{ profile.full_name }}</span></li>
             <li><a href="{% url 'logout' %}" class="nav__cta">Logout</a></li>
         </ul>
     </div>
@@ -21,13 +27,255 @@
 {% block content %}
 <div class="dashboard">
     <div class="dashboard__container">
+        <!-- Dashboard Header -->
         <div class="dashboard__header">
             <div class="dashboard__welcome">
-                <h1>{{ profile.full_name }}</h1>
-                <p>You entered student dashboard</p>
+                <h1>Welcome back, {{ profile.full_name }}</h1>
+                <p>Roll No: <strong>{{ profile.roll_number }}</strong> &nbsp;|&nbsp; Batch: <strong>{{ profile.batch }}</strong></p>
             </div>
-            <a href="{% url 'logout' %}" class="btn btn-outline">Logout</a>
+            <div style="display: flex; gap: var(--space-3); align-items: center;">
+            </div>
         </div>
+
+        <!-- Active Lab Session Check-In Alert -->
+        {% if active_session_data %}
+            {% for item in active_session_data %}
+                <div class="card" style="border-left: 5px solid var(--color-accent); background: var(--color-accent-subtle);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-4);">
+                        <div>
+                            <span class="badge badge--info" style="margin-bottom: var(--space-2);">🔴 Live Lab Session</span>
+                            <h3 style="font-size: var(--font-size-lg); color: var(--color-text-primary); margin-bottom: var(--space-1);">
+                                {{ item.session.lab.code }} — {{ item.session.session_title }}
+                            </h3>
+                            <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">
+                                Scheduled: {{ item.session.start_time|time:"H:i" }} to {{ item.session.end_time|time:"H:i" }} | Instructor: {{ item.session.teacher.full_name }}
+                            </p>
+                        </div>
+                        <div>
+                            {% if item.has_checked_in %}
+                                <span class="badge badge--success" style="font-size: var(--font-size-sm); padding: 8px 16px;">✓ Checked In</span>
+                            {% else %}
+                                <form method="POST" action="{% url 'student_checkin' item.session.id %}" style="display: flex; gap: var(--space-2);">
+                                    {% csrf_token %}
+                                    {% if item.session.verification_code %}
+                                        <input type="text" name="verification_code" placeholder="Enter Lab PIN" class="form-input" style="width: 140px; padding: 6px 10px;" required>
+                                    {% endif %}
+                                    <button type="submit" class="btn btn-primary">Check In Now</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Performance & Attendance Overview Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-card__label">Attendance Rate</span>
+                <span class="stat-card__value" style="color: {% if attendance_rate >= 75 %}var(--color-success){% else %}var(--color-error){% endif %};">
+                    {{ attendance_rate }}%
+                </span>
+                <span class="stat-card__subtext">{{ present_sessions }} of {{ total_sessions }} sessions attended</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card__label">Total Score Earned</span>
+                <span class="stat-card__value" style="color: var(--color-accent);">{{ total_marks_earned }}</span>
+                <span class="stat-card__subtext">Across evaluated assessments</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card__label">Available Assessments</span>
+                <span class="stat-card__value">{{ available_assessments|length }}</span>
+                <span class="stat-card__subtext">Currently open for submissions</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card__label">Enrolled Batch</span>
+                <span class="stat-card__value" style="font-size: var(--font-size-xl);">{{ profile.batch }}</span>
+                <span class="stat-card__subtext">Verified University Profile</span>
+            </div>
+        </div>
+
+        <!-- Available Coding Assessments -->
+        <div class="card">
+            <div class="card__header">
+                <h2 class="card__title">Available Coding Assessments</h2>
+                <span class="badge badge--info">{{ available_assessments|length }} Active</span>
+            </div>
+            {% if available_assessments %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Assessment Title</th>
+                                <th>Questions</th>
+                                <th>Max Marks</th>
+                                <th>Your Score</th>
+                                <th>Status</th>
+                                <th>Deadline</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in available_assessments %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item.assessment.title }}</strong>
+                                    {% if item.assessment.lab %}<div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">{{ item.assessment.lab.name }}</div>{% endif %}
+                                </td>
+                                <td>{{ item.question_count }} Questions</td>
+                                <td>{{ item.total_marks }} pts</td>
+                                <td>
+                                    {% if item.attempt %}
+                                        <strong>{{ item.score_obtained }}</strong> / {{ item.total_marks }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.status == 'Evaluated' or item.status == 'Submitted' %}
+                                        <span class="badge badge--success">{{ item.status }}</span>
+                                    {% elif item.status == 'In Progress' %}
+                                        <span class="badge badge--warning">In Progress</span>
+                                    {% else %}
+                                        <span class="badge badge--neutral">Not Started</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.assessment.end_time|date:"M d, H:i" }}</td>
+                                <td>
+                                    <a href="{% url 'coding_assessment' item.assessment.id %}" class="btn btn-primary" style="padding: 6px 14px; font-size: var(--font-size-xs);">
+                                        {% if item.status == 'Not Started' %}Start Assessment{% else %}Continue Code{% endif %}
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div style="text-align: center; padding: var(--space-8); color: var(--color-text-muted);">
+                    <p>No coding assessments are currently open for your batch.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Upcoming & Past Assessments -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--space-6);">
+            <!-- Upcoming Assessments -->
+            <div class="card">
+                <div class="card__header">
+                    <h2 class="card__title">Upcoming Assessments</h2>
+                    <span class="badge badge--neutral">{{ upcoming_assessments|length }}</span>
+                </div>
+                {% if upcoming_assessments %}
+                    <div class="data-table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Starts At</th>
+                                    <th>Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in upcoming_assessments %}
+                                <tr>
+                                    <td><strong>{{ item.assessment.title }}</strong></td>
+                                    <td>{{ item.assessment.start_time|date:"M d, H:i" }}</td>
+                                    <td>{{ item.assessment.duration_minutes }} mins</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p style="color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: center; padding: var(--space-4);">No upcoming assessments scheduled.</p>
+                {% endif %}
+            </div>
+
+            <!-- Past Completed Assessments -->
+            <div class="card">
+                <div class="card__header">
+                    <h2 class="card__title">Past Assessments</h2>
+                    <span class="badge badge--neutral">{{ past_assessments|length }}</span>
+                </div>
+                {% if past_assessments %}
+                    <div class="data-table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Score</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in past_assessments %}
+                                <tr>
+                                    <td><strong>{{ item.assessment.title }}</strong></td>
+                                    <td><strong>{{ item.score_obtained }}</strong> / {{ item.total_marks }}</td>
+                                    <td><span class="badge badge--neutral">{{ item.status }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p style="color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: center; padding: var(--space-4);">No past assessment records.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Submissions History -->
+        <div class="card">
+            <div class="card__header">
+                <h2 class="card__title">Recent Coding Submissions</h2>
+            </div>
+            {% if recent_submissions %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Problem</th>
+                                <th>Assessment</th>
+                                <th>Language</th>
+                                <th>Verdict</th>
+                                <th>Marks Awarded</th>
+                                <th>Passed Cases</th>
+                                <th>Submitted At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sub in recent_submissions %}
+                            <tr>
+                                <td><strong>{{ sub.question.title }}</strong></td>
+                                <td>{{ sub.question.assessment.title }}</td>
+                                <td><span class="badge badge--neutral">{{ sub.language|upper }}</span></td>
+                                <td>
+                                    {% if sub.status == 'ACCEPTED' %}
+                                        <span class="badge badge--success">Accepted</span>
+                                    {% elif sub.status == 'WRONG_ANSWER' %}
+                                        <span class="badge badge--error">Wrong Answer</span>
+                                    {% elif sub.status == 'COMPILATION_ERROR' %}
+                                        <span class="badge badge--warning">Compile Error</span>
+                                    {% elif sub.status == 'TIME_LIMIT_EXCEEDED' %}
+                                        <span class="badge badge--warning">Time Limit</span>
+                                    {% else %}
+                                        <span class="badge badge--error">{{ sub.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td><strong>{{ sub.effective_marks }}</strong> / {{ sub.question.max_marks }}</td>
+                                <td>{{ sub.test_cases_passed }} / {{ sub.total_test_cases }}</td>
+                                <td>{{ sub.submitted_at|date:"M d, H:i" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p style="color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: center; padding: var(--space-4);">No submissions yet. Start your first coding problem above!</p>
+            {% endif %}
+        </div>
+
     </div>
 </div>
 {% endblock %}

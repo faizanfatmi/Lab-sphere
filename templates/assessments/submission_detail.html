@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Submission #{{ submission.id }} Review — LabSphere{% endblock %}
+
+{% block nav %}
+<nav class="nav scrolled" id="main-nav">
+    <div class="nav__container">
+        <a href="{% url 'teacher_dashboard' %}" class="nav__logo">
+            <span class="nav__logo-icon">LS</span>
+            LabSphere
+        </a>
+        <ul class="nav__links">
+            <li>
+                <button type="button" class="theme-toggle" aria-label="Toggle theme">
+                    <span class="theme-toggle__icon">🌙</span>
+                    <span class="theme-toggle__text">Dark</span>
+                </button>
+            </li>
+            <li><a href="{% url 'assessment_submissions' submission.question.assessment.id %}" class="nav__link">Back to Submissions</a></li>
+            <li><a href="{% url 'logout' %}" class="nav__cta">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard__container">
+        <div class="dashboard__header">
+            <div class="dashboard__welcome">
+                <h1>Submission #{{ submission.id }} Review</h1>
+                <p>
+                    Student: <strong>{{ submission.student.full_name }}</strong> (Roll: {{ submission.student.roll_number }}) &nbsp;|&nbsp;
+                    Question: <strong>{{ submission.question.title }}</strong> &nbsp;|&nbsp;
+                    Assessment: <strong>{{ submission.question.assessment.title }}</strong>
+                </p>
+            </div>
+            <a href="{% url 'assessment_submissions' submission.question.assessment.id %}" class="btn btn-outline">&larr; Back to Submissions</a>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-6);">
+            <!-- Left Column: Source Code & Test Evaluation -->
+            <div>
+                <!-- Source Code Card -->
+                <div class="card">
+                    <div class="card__header">
+                        <h2 class="card__title">Submitted Source Code ({{ submission.language|upper }})</h2>
+                        <span class="badge badge--neutral">{{ submission.submitted_at|date:"M d, Y - H:i:s" }}</span>
+                    </div>
+                    <pre style="background: var(--color-bg-primary); padding: var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--color-border); overflow-x: auto; font-family: monospace; font-size: var(--font-size-sm); line-height: 1.5; color: var(--color-text-primary);">{{ submission.source_code }}</pre>
+                </div>
+
+                <!-- Test Cases Evaluation Breakdown -->
+                <div class="card">
+                    <div class="card__header">
+                        <h2 class="card__title">Evaluation Test Results ({{ submission.test_cases_passed }} / {{ submission.total_test_cases }} Passed)</h2>
+                        <span class="badge {% if submission.status == 'ACCEPTED' %}badge--success{% else %}badge--error{% endif %}">
+                            {{ submission.get_status_display }}
+                        </span>
+                    </div>
+
+                    {% if submission.compiler_output %}
+                        <div style="margin-bottom: var(--space-4);">
+                            <h4 style="font-size: var(--font-size-xs); text-transform: uppercase; color: var(--color-error); margin-bottom: var(--space-1);">Compiler / Error Output:</h4>
+                            <pre style="background: var(--color-error-bg); color: var(--color-error); padding: var(--space-3); border-radius: var(--radius-sm); font-size: var(--font-size-xs); font-family: monospace;">{{ submission.compiler_output }}</pre>
+                        </div>
+                    {% endif %}
+
+                    {% if submission.evaluation_details %}
+                        <div class="data-table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Case #</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                        <th>Time (ms)</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for tc in submission.evaluation_details %}
+                                    <tr>
+                                        <td>Case {{ forloop.counter }}</td>
+                                        <td>
+                                            {% if tc.is_sample %}
+                                                <span class="badge badge--info">Sample</span>
+                                            {% else %}
+                                                <span class="badge badge--neutral">Private</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if tc.passed %}
+                                                <span class="badge badge--success">Passed</span>
+                                            {% else %}
+                                                <span class="badge badge--error">{{ tc.status }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ tc.time_ms }}ms</td>
+                                        <td style="font-size: var(--font-size-xs); color: var(--color-text-muted);">
+                                            {% if tc.error_message %}{{ tc.error_message }}{% else %}Output matched expected{% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Right Column: Score Override & Security Incident Audit -->
+            <div>
+                <!-- Score & Manual Override Card -->
+                <div class="card">
+                    <div class="card__header">
+                        <h2 class="card__title">Score & Manual Override</h2>
+                    </div>
+
+                    <div style="margin-bottom: var(--space-4);">
+                        <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-bottom: var(--space-1);">Automated Evaluation Score:</p>
+                        <h3 style="font-size: var(--font-size-2xl); font-weight: 800; color: var(--color-text-primary);">
+                            {{ submission.marks_awarded }} / {{ submission.question.max_marks }} pts
+                        </h3>
+                        {% if submission.manual_override_marks is not None %}
+                            <div style="background: var(--color-warning-bg); border: 1px solid var(--color-warning); padding: var(--space-3); border-radius: var(--radius-sm); margin-top: var(--space-3);">
+                                <strong style="color: var(--color-warning); font-size: var(--font-size-xs); text-transform: uppercase;">Active Manual Override:</strong>
+                                <p style="font-size: var(--font-size-sm); font-weight: 700; color: var(--color-text-primary); margin: 2px 0;">
+                                    {{ submission.manual_override_marks }} pts
+                                </p>
+                                <p style="font-size: var(--font-size-xs); color: var(--color-text-secondary);">Reason: "{{ submission.override_reason }}"</p>
+                                {% if submission.overridden_by %}
+                                    <p style="font-size: var(--font-size-xs); color: var(--color-text-muted);">Overridden by {{ submission.overridden_by.full_name }}</p>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <hr style="border: 0; border-top: 1px solid var(--color-border); margin: var(--space-4) 0;">
+
+                    <h4 style="font-size: var(--font-size-sm); font-weight: 700; margin-bottom: var(--space-3);">Override Student Score</h4>
+                    <form method="POST" action="{% url 'submission_override' submission.id %}">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label class="form-label" for="id_manual_override_marks">New Score Value (Max: {{ submission.question.max_marks }}) *</label>
+                            {{ override_form.manual_override_marks }}
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="id_override_reason">Mandatory Audit Reason *</label>
+                            {{ override_form.override_reason }}
+                            <p class="form-hint">Recorded in teacher audit logs for transparency.</p>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">Submit Score Override</button>
+                    </form>
+                </div>
+
+                <!-- Exam Security Incident Audit Log -->
+                <div class="card">
+                    <div class="card__header">
+                        <h2 class="card__title">Security Incidents Log</h2>
+                        <span class="badge {% if security_events %}badge--warning{% else %}badge--success{% endif %}">
+                            {{ security_events|length }} Incidents
+                        </span>
+                    </div>
+                    {% if security_events %}
+                        <div style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-bottom: var(--space-3);">
+                            Browser-level safeguards detected during this student's assessment session:
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+                            {% for ev in security_events %}
+                            <div style="border-left: 3px solid var(--color-warning); background: var(--color-bg-secondary); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); font-size: var(--font-size-xs);">
+                                <strong>{{ ev.get_event_type_display }}</strong>
+                                <div style="color: var(--color-text-muted); font-size: 11px;">
+                                    {{ ev.timestamp|date:"H:i:s" }} {% if ev.details %}— {{ ev.details }}{% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p style="color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: center; padding: var(--space-4);">
+                            ✓ No security anomalies or tab switches recorded for this attempt.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

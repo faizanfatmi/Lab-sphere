@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Performance: {{ student.full_name }} — LabSphere{% endblock %}
+
+{% block nav %}
+<nav class="nav scrolled" id="main-nav">
+    <div class="nav__container">
+        <a href="{% url 'teacher_dashboard' %}" class="nav__logo">
+            <span class="nav__logo-icon">LS</span>
+            LabSphere
+        </a>
+        <ul class="nav__links">
+            <li>
+                <button type="button" class="theme-toggle" aria-label="Toggle theme">
+                    <span class="theme-toggle__icon">🌙</span>
+                    <span class="theme-toggle__text">Dark</span>
+                </button>
+            </li>
+            <li><a href="{% url 'teacher_dashboard' %}" class="nav__link">Teacher Dashboard</a></li>
+            <li><a href="{% url 'logout' %}" class="nav__cta">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard__container">
+        <div class="dashboard__header">
+            <div class="dashboard__welcome">
+                <h1>{{ student.full_name }} — Performance Profile</h1>
+                <p>Roll No: <strong>{{ student.roll_number }}</strong> &nbsp;|&nbsp; Batch: <strong>{{ student.batch }}</strong></p>
+            </div>
+            <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline">&larr; Back to Student Management</a>
+        </div>
+
+        <!-- Student Metrics Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-card__label">Laboratory Attendance</span>
+                <span class="stat-card__value" style="color: {% if attendance_rate >= 75 %}var(--color-success){% else %}var(--color-warning){% endif %};">
+                    {{ attendance_rate }}%
+                </span>
+                <span class="stat-card__subtext">{{ present_sessions }} of {{ total_sessions }} lab sessions attended</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card__label">Total Marks Obtained</span>
+                <span class="stat-card__value" style="color: var(--color-accent);">{{ total_marks_obtained }}</span>
+                <span class="stat-card__subtext">Out of {{ total_max_marks }} maximum possible marks</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card__label">Assessments Attempted</span>
+                <span class="stat-card__value">{{ attempts|length }}</span>
+                <span class="stat-card__subtext">Examinations conducted by you</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card__label">Total Submissions</span>
+                <span class="stat-card__value">{{ submissions|length }}</span>
+                <span class="stat-card__subtext">Code evaluation attempts</span>
+            </div>
+        </div>
+
+        <!-- Assessment-Wise Breakdown -->
+        <div class="card">
+            <div class="card__header">
+                <h2 class="card__title">Assessment-Wise Performance</h2>
+            </div>
+            {% if attempts %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Assessment</th>
+                                <th>Batch</th>
+                                <th>Date Started</th>
+                                <th>Status</th>
+                                <th>Marks Obtained</th>
+                                <th>Max Marks</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for att in attempts %}
+                            <tr>
+                                <td><strong>{{ att.assessment.title }}</strong></td>
+                                <td>{{ att.assessment.assigned_batch }}</td>
+                                <td>{{ att.started_at|date:"M d, Y - H:i" }}</td>
+                                <td><span class="badge badge--neutral">{{ att.get_status_display }}</span></td>
+                                <td><strong style="color: var(--color-accent);">{{ att.total_score_obtained }}</strong></td>
+                                <td>{{ att.assessment.total_marks }}</td>
+                                <td>
+                                    {% if att.assessment.total_marks > 0 %}
+                                        <strong>{% widthratio att.total_score_obtained att.assessment.total_marks 100 %}%</strong>
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p style="color: var(--color-text-muted); text-align: center; padding: var(--space-6);">No assessments recorded for this student yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- Question-Wise Submissions History -->
+        <div class="card">
+            <div class="card__header">
+                <h2 class="card__title">Question-Wise Submissions History</h2>
+            </div>
+            {% if submissions %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Problem Title</th>
+                                <th>Assessment</th>
+                                <th>Language</th>
+                                <th>Verdict</th>
+                                <th>Marks Awarded</th>
+                                <th>Cases Passed</th>
+                                <th>Submitted At</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sub in submissions %}
+                            <tr>
+                                <td><strong>{{ sub.question.title }}</strong></td>
+                                <td>{{ sub.question.assessment.title }}</td>
+                                <td><span class="badge badge--neutral">{{ sub.language|upper }}</span></td>
+                                <td>
+                                    {% if sub.status == 'ACCEPTED' %}
+                                        <span class="badge badge--success">Accepted</span>
+                                    {% elif sub.status == 'WRONG_ANSWER' %}
+                                        <span class="badge badge--error">Wrong Answer</span>
+                                    {% elif sub.status == 'COMPILATION_ERROR' %}
+                                        <span class="badge badge--warning">Compile Error</span>
+                                    {% else %}
+                                        <span class="badge badge--error">{{ sub.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong>{{ sub.effective_marks }}</strong> / {{ sub.question.max_marks }}
+                                    {% if sub.manual_override_marks is not None %}<span style="color: var(--color-warning); font-size: 11px;">(Override)</span>{% endif %}
+                                </td>
+                                <td>{{ sub.test_cases_passed }} / {{ sub.total_test_cases }}</td>
+                                <td>{{ sub.submitted_at|date:"M d, H:i" }}</td>
+                                <td>
+                                    <a href="{% url 'submission_detail' sub.id %}" class="btn btn-outline" style="padding: 3px 8px; font-size: var(--font-size-xs);">Review Code</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p style="color: var(--color-text-muted); text-align: center; padding: var(--space-6);">No coding submissions recorded for this student.</p>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Confirm Deletion — LabSphere{% endblock %}
+
+{% block content %}
+<div class="dashboard" style="display: flex; align-items: center; justify-content: center;">
+    <div class="card" style="max-width: 500px; width: 90%; text-align: center; padding: var(--space-8);">
+        <div style="font-size: 3rem; margin-bottom: var(--space-4);">⚠️</div>
+        <h2 style="font-size: var(--font-size-xl); margin-bottom: var(--space-2);">Confirm Deletion</h2>
+        <p style="color: var(--color-text-secondary); margin-bottom: var(--space-6);">
+            Are you sure you want to permanently delete <strong>{{ item_name }}</strong>? This action cannot be undone.
+        </p>
+        <form method="POST" style="display: flex; gap: var(--space-3); justify-content: center;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary" style="background: var(--color-error); border-color: var(--color-error);">Yes, Delete Permanently</button>
+            <a href="{% if cancel_id %}{% url cancel_url cancel_id %}{% else %}{% url cancel_url %}{% endif %}" class="btn btn-outline">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

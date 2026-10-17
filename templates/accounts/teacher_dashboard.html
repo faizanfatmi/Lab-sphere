@@ -6,12 +6,20 @@
 {% block nav %}
 <nav class="nav scrolled" id="main-nav">
     <div class="nav__container">
-        <a href="/" class="nav__logo">
+        <a href="{% url 'teacher_dashboard' %}" class="nav__logo">
             <span class="nav__logo-icon">LS</span>
             LabSphere
         </a>
         <ul class="nav__links">
-            <li><span class="nav__link" style="cursor: default;">{{ profile.full_name }}</span></li>
+            <li>
+                <button type="button" class="theme-toggle" aria-label="Toggle theme">
+                    <span class="theme-toggle__icon">🌙</span>
+                    <span class="theme-toggle__text">Dark</span>
+                </button>
+            </li>
+            <li><a href="{% url 'assessment_list' %}" class="nav__link">Assessments</a></li>
+            <li><a href="{% url 'session_list' %}" class="nav__link">Lab Sessions</a></li>
+            <li><span class="nav__link" style="cursor: default; font-weight: 600;">{{ profile.full_name }}</span></li>
             <li><a href="{% url 'logout' %}" class="nav__cta">Logout</a></li>
         </ul>
     </div>
@@ -21,13 +29,197 @@
 {% block content %}
 <div class="dashboard">
     <div class="dashboard__container">
+        <!-- Dashboard Header -->
         <div class="dashboard__header">
             <div class="dashboard__welcome">
-                <h1>{{ profile.full_name }}</h1>
-                <p>You entered teacher dashboard</p>
+                <h1>Teacher Portal — {{ profile.full_name }}</h1>
+                <p>Teacher ID: <strong>{{ profile.teacher_id }}</strong> &nbsp;|&nbsp; College Lab Administration</p>
             </div>
-            <a href="{% url 'logout' %}" class="btn btn-outline">Logout</a>
+            <div style="display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap;">
+                <a href="{% url 'assessment_create' %}" class="btn btn-primary">+ Create Assessment</a>
+                <a href="{% url 'session_create' %}" class="btn btn-outline">+ Schedule Lab Session</a>
+            </div>
         </div>
+
+        <!-- System Analytics Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-card__label">Total Enrolled Students</span>
+                <span class="stat-card__value">{{ total_students }}</span>
+                <span class="stat-card__subtext">Across managed batches</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card__label">Active Assessments</span>
+                <span class="stat-card__value" style="color: var(--color-accent);">{{ active_assessments_count }}</span>
+                <span class="stat-card__subtext">Out of {{ total_assessments }} total assessments</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card__label">Average Score</span>
+                <span class="stat-card__value">{{ average_score }}</span>
+                <span class="stat-card__subtext">Across evaluated student attempts</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card__label">Overall Attendance</span>
+                <span class="stat-card__value" style="color: {% if overall_attendance_rate >= 75 %}var(--color-success){% else %}var(--color-warning){% endif %};">
+                    {{ overall_attendance_rate }}%
+                </span>
+                <span class="stat-card__subtext">In laboratory check-in sessions</span>
+            </div>
+        </div>
+
+        <!-- Student Performance Management Section -->
+        <div class="card">
+            <div class="card__header">
+                <div>
+                    <h2 class="card__title">Student Performance Management</h2>
+                    <p style="font-size: var(--font-size-xs); color: var(--color-text-muted);">
+                        Filter by roll number, name, or batch. Click "View Profile" for detailed question-wise marks and assessment audits.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Filter & Search Controls -->
+            <form method="GET" action="{% url 'teacher_dashboard' %}" class="filter-bar">
+                <input type="text" name="search" value="{{ search_query }}" placeholder="Search by Student Name or Roll Number..." class="search-input">
+                <select name="batch" class="filter-select" onchange="this.form.submit()">
+                    <option value="">All Batches</option>
+                    {% for b in all_batches %}
+                        <option value="{{ b }}" {% if b == selected_batch %}selected{% endif %}>{{ b }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary" style="padding: 8px 18px; font-size: var(--font-size-sm);">Search</button>
+                {% if search_query or selected_batch %}
+                    <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline" style="padding: 8px 14px; font-size: var(--font-size-sm);">Reset</a>
+                {% endif %}
+            </form>
+
+            {% if student_records %}
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Roll Number</th>
+                                <th>Student Name</th>
+                                <th>Batch</th>
+                                <th>Attendance %</th>
+                                <th>Completed Questions</th>
+                                <th>Total Marks</th>
+                                <th>Attempts</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rec in student_records %}
+                            <tr>
+                                <td><strong>{{ rec.student.roll_number }}</strong></td>
+                                <td>{{ rec.student.full_name }}</td>
+                                <td><span class="badge badge--neutral">{{ rec.student.batch }}</span></td>
+                                <td>
+                                    <span class="badge {% if rec.attendance_rate >= 75 %}badge--success{% else %}badge--warning{% endif %}">
+                                        {{ rec.attendance_rate }}%
+                                    </span>
+                                </td>
+                                <td>{{ rec.completed_questions }} Solved</td>
+                                <td><strong>{{ rec.total_marks }}</strong> pts</td>
+                                <td>{{ rec.attempts_count }}</td>
+                                <td>
+                                    <a href="{% url 'student_performance_detail' rec.student.id %}" class="btn btn-outline" style="padding: 4px 10px; font-size: var(--font-size-xs);">
+                                        Detailed Performance →
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p style="text-align: center; color: var(--color-text-muted); padding: var(--space-6);">No students found matching the selected search criteria.</p>
+            {% endif %}
+        </div>
+
+        <!-- Quick Access: Recent Assessments & Sessions -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: var(--space-6);">
+            
+            <!-- Assessment Management Card -->
+            <div class="card">
+                <div class="card__header">
+                    <h2 class="card__title">Your Assessments</h2>
+                    <a href="{% url 'assessment_list' %}" style="font-size: var(--font-size-xs); font-weight: 600;">View All ({{ total_assessments }}) →</a>
+                </div>
+                {% if recent_assessments %}
+                    <div class="data-table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Batch</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for asm in recent_assessments %}
+                                <tr>
+                                    <td><strong>{{ asm.title }}</strong></td>
+                                    <td>{{ asm.assigned_batch }}</td>
+                                    <td>
+                                        {% if asm.is_published %}
+                                            <span class="badge badge--success">Published</span>
+                                        {% else %}
+                                            <span class="badge badge--neutral">Draft</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'assessment_detail' asm.id %}" class="btn btn-outline" style="padding: 3px 8px; font-size: var(--font-size-xs);">Manage</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p style="text-align: center; color: var(--color-text-muted); padding: var(--space-4);">No assessments created yet. Click "+ Create Assessment" above.</p>
+                {% endif %}
+            </div>
+
+            <!-- Lab Sessions Card -->
+            <div class="card">
+                <div class="card__header">
+                    <h2 class="card__title">Your Lab Sessions</h2>
+                    <a href="{% url 'session_list' %}" style="font-size: var(--font-size-xs); font-weight: 600;">View All Sessions →</a>
+                </div>
+                {% if recent_sessions %}
+                    <div class="data-table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Session Title</th>
+                                    <th>Lab / Batch</th>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sess in recent_sessions %}
+                                <tr>
+                                    <td><strong>{{ sess.session_title }}</strong></td>
+                                    <td>{{ sess.lab.code }} ({{ sess.batch }})</td>
+                                    <td>{{ sess.date|date:"M d" }}</td>
+                                    <td>
+                                        <a href="{% url 'session_detail' sess.id %}" class="btn btn-outline" style="padding: 3px 8px; font-size: var(--font-size-xs);">Attendance</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p style="text-align: center; color: var(--color-text-muted); padding: var(--space-4);">No lab sessions created yet. Click "+ Schedule Lab Session" above.</p>
+                {% endif %}
+            </div>
+
+        </div>
+
     </div>
 </div>
 {% endblock %}

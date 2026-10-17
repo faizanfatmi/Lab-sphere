@@ -1,0 +1,476 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} — LabSphere{% endblock %}
+
+{% block nav %}
+<nav class="nav scrolled" id="main-nav">
+    <div class="nav__container">
+        <a href="{% url 'teacher_dashboard' %}" class="nav__logo">
+            <span class="nav__logo-icon">LS</span>
+            LabSphere
+        </a>
+        <ul class="nav__links">
+            <li>
+                <button type="button" class="theme-toggle" aria-label="Toggle theme">
+                    <span class="theme-toggle__icon">🌙</span>
+                    <span class="theme-toggle__text">Dark</span>
+                </button>
+            </li>
+            <li><a href="{% url 'assessment_detail' assessment.id %}" class="nav__link">Back to Assessment</a></li>
+            <li><a href="{% url 'logout' %}" class="nav__cta">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard__container" style="max-width: 900px;">
+        <div class="dashboard__header">
+            <div class="dashboard__welcome">
+                <h1>{{ title }}</h1>
+                <p>Assessment: <strong>{{ assessment.title }}</strong> ({{ assessment.assigned_batch }})</p>
+            </div>
+            <a href="{% url 'assessment_detail' assessment.id %}" class="btn btn-outline">&larr; Back to Assessment</a>
+        </div>
+
+        {% if not question %}
+        <!-- Quick Question Builder Form -->
+        <div class="card" style="margin-bottom: var(--space-6);">
+            <div class="card__header" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-4); margin-bottom: var(--space-6);">
+                <div>
+                    <h2 class="card__title" style="font-size: var(--font-size-lg); display: flex; align-items: center; gap: 8px;">
+                        <span>📝</span> Add Questions to Assessment
+                    </h2>
+                    <p style="font-size: var(--font-size-sm); color: var(--color-text-muted); margin-top: 4px;">
+                        Write the question in the box and select marks (2, 5, 10, etc.) from the dropdown. Click <strong>+ Add Question</strong> to add more questions.
+                    </p>
+                </div>
+            </div>
+
+            <form method="POST" id="quick-questions-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="quick_add">
+
+                <div id="questions-list">
+                    <!-- Default Question Row 1 -->
+                    <div class="question-row" style="display: flex; gap: var(--space-3); align-items: flex-start; margin-bottom: var(--space-4); padding: var(--space-4); background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: border-color 0.2s;">
+                        <div class="q-badge" style="font-weight: 700; font-size: var(--font-size-sm); color: var(--color-primary); padding-top: 8px; min-width: 36px;">
+                            Q1.
+                        </div>
+                        <div style="flex: 1;">
+                            <label class="form-label" style="font-size: var(--font-size-xs); margin-bottom: 4px; font-weight: 600;">Question *</label>
+                            <textarea name="question_title[]" rows="2" class="form-input" placeholder="Type your question here... (e.g. Write a program to find the reverse of a given string)" required style="width: 100%; resize: vertical; font-size: var(--font-size-sm);"></textarea>
+                        </div>
+                        <div style="width: 150px; flex-shrink: 0;">
+                            <label class="form-label" style="font-size: var(--font-size-xs); margin-bottom: 4px; font-weight: 600;">Marks *</label>
+                            <select name="question_marks[]" class="form-input marks-select" style="width: 100%; font-size: var(--font-size-sm);">
+                                {% for val, label in marks_choices %}
+                                    <option value="{{ val }}" {% if val == 10 %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div style="padding-top: 24px; flex-shrink: 0;">
+                            <button type="button" class="btn btn-outline btn-remove-row" style="color: var(--color-error); border-color: var(--color-border); padding: 8px 12px; font-size: var(--font-size-sm);" title="Remove question" disabled>&times;</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Question & Summary Bar -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-4); margin-bottom: var(--space-6); padding: var(--space-3) var(--space-4); background: var(--color-surface); border: 1px dashed var(--color-border); border-radius: var(--radius-md); flex-wrap: wrap; gap: var(--space-3);">
+                    <button type="button" id="btn-add-question" class="btn btn-outline" style="border-width: 2px; font-weight: 600;">
+                        <span style="font-size: 1.2em; font-weight: bold; margin-right: 4px;">+</span> Add Question
+                    </button>
+                    <div style="font-size: var(--font-size-sm); color: var(--color-text-muted);">
+                        Total Questions: <strong id="summary-q-count" style="color: var(--color-text);">1</strong> &nbsp;|&nbsp;
+                        Total Marks: <strong id="summary-total-marks" style="color: var(--color-primary); font-size: var(--font-size-md);">10</strong>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: var(--space-3);">
+                    <button type="submit" class="btn btn-primary btn-lg">Save Questions</button>
+                    <a href="{% url 'assessment_detail' assessment.id %}" class="btn btn-outline btn-lg">Cancel</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Optional: Advanced Single Question Setup Accordion -->
+        <details style="margin-bottom: var(--space-8); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); background: var(--color-surface);">
+            <summary style="cursor: pointer; font-weight: 600; color: var(--color-text-muted); font-size: var(--font-size-sm);">
+                ⚙️ Need Advanced Configuration? (Starter Codes, Time/Memory Limits, Sample Test Cases)
+            </summary>
+            <div style="margin-top: var(--space-5); border-top: 1px solid var(--color-border); padding-top: var(--space-5);">
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="advanced_single">
+
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: var(--space-4);">
+                        <div class="form-group">
+                            <label class="form-label" for="id_title">Question Title *</label>
+                            {{ form.title }}
+                            {% if form.title.errors %}<p class="form-hint" style="color: var(--color-error);">{{ form.title.errors.0 }}</p>{% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="id_difficulty">Difficulty</label>
+                            {{ form.difficulty }}
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="id_max_marks">Max Marks *</label>
+                            {{ form.max_marks }}
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-4);">
+                        <div class="form-group">
+                            <label class="form-label" for="id_order">Display Order</label>
+                            {{ form.order }}
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="id_time_limit_seconds">Time Limit (Sec)</label>
+                            {{ form.time_limit_seconds }}
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="id_memory_limit_mb">Memory Limit (MB)</label>
+                            {{ form.memory_limit_mb }}
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="id_problem_statement">Problem Statement</label>
+                        {{ form.problem_statement }}
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+                        <div class="form-group">
+                            <label class="form-label" for="id_input_format">Input Format</label>
+                            {{ form.input_format }}
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="id_output_format">Output Format</label>
+                            {{ form.output_format }}
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="id_constraints">Constraints</label>
+                        {{ form.constraints }}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="id_sample_explanation">Sample Explanation</label>
+                        {{ form.sample_explanation }}
+                    </div>
+
+                    <h3 style="font-size: var(--font-size-md); margin-top: var(--space-6); margin-bottom: var(--space-3); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2);">
+                        Language Starter Code Templates
+                    </h3>
+
+                    <div class="form-group">
+                        <label class="form-label" for="id_c_starter_code">C Starter Code</label>
+                        {{ form.c_starter_code }}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="id_python_starter_code">Python Starter Code</label>
+                        {{ form.python_starter_code }}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="id_cpp_starter_code">C++ Starter Code</label>
+                        {{ form.cpp_starter_code }}
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="id_java_starter_code">Java Starter Code</label>
+                        {{ form.java_starter_code }}
+                    </div>
+
+                    <div style="margin-top: var(--space-6);">
+                        <button type="submit" class="btn btn-primary btn-lg">Save Advanced Question</button>
+                    </div>
+                </form>
+            </div>
+        </details>
+        {% else %}
+        <!-- Edit Existing Question Form -->
+        <div class="card">
+            <form method="POST">
+                {% csrf_token %}
+
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: var(--space-4);">
+                    <div class="form-group">
+                        <label class="form-label" for="id_title">Question Title *</label>
+                        {{ form.title }}
+                        {% if form.title.errors %}<p class="form-hint" style="color: var(--color-error);">{{ form.title.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="id_difficulty">Difficulty</label>
+                        {{ form.difficulty }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="id_max_marks">Max Marks *</label>
+                        {{ form.max_marks }}
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-4);">
+                    <div class="form-group">
+                        <label class="form-label" for="id_order">Display Order</label>
+                        {{ form.order }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="id_time_limit_seconds">Time Limit (Sec)</label>
+                        {{ form.time_limit_seconds }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="id_memory_limit_mb">Memory Limit (MB)</label>
+                        {{ form.memory_limit_mb }}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_problem_statement">Problem Statement *</label>
+                    {{ form.problem_statement }}
+                    <p class="form-hint">Describe the problem clearly. You may use markdown formatting.</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+                    <div class="form-group">
+                        <label class="form-label" for="id_input_format">Input Format</label>
+                        {{ form.input_format }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="id_output_format">Output Format</label>
+                        {{ form.output_format }}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_constraints">Constraints</label>
+                    {{ form.constraints }}
+                    <p class="form-hint">e.g. 1 &le; N &le; 10^5, Array elements are 32-bit integers.</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_sample_explanation">Sample Explanation</label>
+                    {{ form.sample_explanation }}
+                </div>
+
+                <h3 style="font-size: var(--font-size-md); margin-top: var(--space-6); margin-bottom: var(--space-3); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2);">
+                    Language Starter Code Templates
+                </h3>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_c_starter_code">C Starter Code</label>
+                    {{ form.c_starter_code }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_python_starter_code">Python Starter Code</label>
+                    {{ form.python_starter_code }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_cpp_starter_code">C++ Starter Code</label>
+                    {{ form.cpp_starter_code }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_java_starter_code">Java Starter Code</label>
+                    {{ form.java_starter_code }}
+                </div>
+
+                <div style="margin-top: var(--space-6);">
+                    <button type="submit" class="btn btn-primary btn-lg">Save Question Details</button>
+                    <a href="{% url 'assessment_detail' assessment.id %}" class="btn btn-outline btn-lg">Back</a>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Test Cases Management Section (Only visible when editing existing question) -->
+        {% if question %}
+            <div class="card" style="margin-top: var(--space-8);">
+                <div class="card__header">
+                    <div>
+                        <h2 class="card__title">Evaluation Test Cases</h2>
+                        <p style="font-size: var(--font-size-xs); color: var(--color-text-muted);">
+                            <strong>Sample Test Cases</strong> are displayed in the problem description for student dry-runs.
+                            <strong>Private Test Cases</strong> are kept strictly confidential on the server for automated scoring.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Existing Test Cases Table -->
+                {% if test_cases %}
+                    <div class="data-table-wrapper" style="margin-bottom: var(--space-6);">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Order</th>
+                                    <th>Type</th>
+                                    <th>Input Data</th>
+                                    <th>Expected Output</th>
+                                    <th>Weight %</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tc in test_cases %}
+                                <tr>
+                                    <td>#{{ tc.order }}</td>
+                                    <td>
+                                        {% if tc.is_sample %}
+                                            <span class="badge badge--info">Sample (Visible)</span>
+                                        {% else %}
+                                            <span class="badge badge--warning">Private (Hidden)</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><pre style="max-height: 60px; overflow: auto; font-size: var(--font-size-xs); font-family: monospace;">{{ tc.input_data }}</pre></td>
+                                    <td><pre style="max-height: 60px; overflow: auto; font-size: var(--font-size-xs); font-family: monospace;">{{ tc.expected_output }}</pre></td>
+                                    <td>{{ tc.weight_percentage }}%</td>
+                                    <td>
+                                        <form method="POST" action="{% url 'test_case_delete' tc.id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline" style="padding: 2px 8px; font-size: var(--font-size-xs); color: var(--color-error);" onclick="return confirm('Delete this test case?')">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p style="color: var(--color-text-muted); font-size: var(--font-size-sm); margin-bottom: var(--space-6); text-align: center;">
+                        ⚠️ No test cases added yet. Add at least one sample test case and private test cases below for automatic grading.
+                    </p>
+                {% endif %}
+
+                <!-- Add New Test Case Form -->
+                <div style="background: var(--color-bg-secondary); padding: var(--space-5); border-radius: var(--radius-md); border: 1px solid var(--color-border);">
+                    <h3 style="font-size: var(--font-size-sm); font-weight: 700; margin-bottom: var(--space-3); text-transform: uppercase;">+ Add New Test Case</h3>
+                    <form method="POST" action="{% url 'test_case_create' question.id %}">
+                        {% csrf_token %}
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+                            <div class="form-group">
+                                <label class="form-label" for="id_input_data">Standard Input</label>
+                                {{ test_case_form.input_data }}
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="id_expected_output">Expected Output</label>
+                                {{ test_case_form.expected_output }}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: var(--space-6); align-items: center; margin-top: var(--space-3); flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: var(--space-2);">
+                                {{ test_case_form.is_sample }}
+                                <label for="id_is_sample" style="font-size: var(--font-size-sm); font-weight: 600; cursor: pointer;">Is Visible Sample Test Case?</label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: var(--space-2);">
+                                <label class="form-label" style="margin-bottom: 0;">Weight %:</label>
+                                {{ test_case_form.weight_percentage }}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: var(--space-2);">
+                                <label class="form-label" style="margin-bottom: 0;">Order:</label>
+                                {{ test_case_form.order }}
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="padding: 6px 16px; margin-left: auto;">Add Test Case</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const questionsList = document.getElementById('questions-list');
+    const btnAddQuestion = document.getElementById('btn-add-question');
+    const summaryQCount = document.getElementById('summary-q-count');
+    const summaryTotalMarks = document.getElementById('summary-total-marks');
+
+    if (!questionsList || !btnAddQuestion) return;
+
+    function updateSummary() {
+        const rows = questionsList.querySelectorAll('.question-row');
+        if (summaryQCount) summaryQCount.textContent = rows.length;
+
+        let totalMarks = 0;
+        rows.forEach((row, idx) => {
+            const badge = row.querySelector('.q-badge');
+            if (badge) badge.textContent = `Q${idx + 1}.`;
+
+            const select = row.querySelector('.marks-select');
+            if (select) {
+                totalMarks += parseFloat(select.value) || 0;
+            }
+
+            const removeBtn = row.querySelector('.btn-remove-row');
+            if (removeBtn) {
+                removeBtn.disabled = rows.length <= 1;
+            }
+        });
+
+        if (summaryTotalMarks) summaryTotalMarks.textContent = totalMarks;
+    }
+
+    btnAddQuestion.addEventListener('click', function() {
+        const rows = questionsList.querySelectorAll('.question-row');
+        const nextIdx = rows.length + 1;
+
+        const newRow = document.createElement('div');
+        newRow.className = 'question-row';
+        newRow.style.cssText = 'display: flex; gap: var(--space-3); align-items: flex-start; margin-bottom: var(--space-4); padding: var(--space-4); background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: border-color 0.2s;';
+        
+        newRow.innerHTML = `
+            <div class="q-badge" style="font-weight: 700; font-size: var(--font-size-sm); color: var(--color-primary); padding-top: 8px; min-width: 36px;">
+                Q${nextIdx}.
+            </div>
+            <div style="flex: 1;">
+                <label class="form-label" style="font-size: var(--font-size-xs); margin-bottom: 4px; font-weight: 600;">Question *</label>
+                <textarea name="question_title[]" rows="2" class="form-input" placeholder="Type your question here... (e.g. Write a program to find the reverse of a given string)" required style="width: 100%; resize: vertical; font-size: var(--font-size-sm);"></textarea>
+            </div>
+            <div style="width: 150px; flex-shrink: 0;">
+                <label class="form-label" style="font-size: var(--font-size-xs); margin-bottom: 4px; font-weight: 600;">Marks *</label>
+                <select name="question_marks[]" class="form-input marks-select" style="width: 100%; font-size: var(--font-size-sm);">
+                    {% for val, label in marks_choices %}
+                        <option value="{{ val }}" {% if val == 10 %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="padding-top: 24px; flex-shrink: 0;">
+                <button type="button" class="btn btn-outline btn-remove-row" style="color: var(--color-error); border-color: var(--color-border); padding: 8px 12px; font-size: var(--font-size-sm);" title="Remove question">&times;</button>
+            </div>
+        `;
+
+        questionsList.appendChild(newRow);
+        const textarea = newRow.querySelector('textarea');
+        if (textarea) textarea.focus();
+        updateSummary();
+    });
+
+    questionsList.addEventListener('click', function(e) {
+        const removeBtn = e.target.closest('.btn-remove-row');
+        if (!removeBtn) return;
+        const row = removeBtn.closest('.question-row');
+        if (row && questionsList.querySelectorAll('.question-row').length > 1) {
+            row.remove();
+            updateSummary();
+        }
+    });
+
+    questionsList.addEventListener('change', function(e) {
+        if (e.target.classList.contains('marks-select')) {
+            updateSummary();
+        }
+    });
+
+    updateSummary();
+});
+</script>
+{% endblock %}
