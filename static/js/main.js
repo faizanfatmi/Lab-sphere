@@ -105,15 +105,39 @@ document.addEventListener('DOMContentLoaded', function () {
   // ===== Toast Notifications =====
   var activeToastMessages = new Set();
 
+  // function dismissToast(toast) {
+  //   var message = toast.querySelector('.toast__message');
+  //   if (message) {
+  //     activeToastMessages.delete(message.textContent.trim());
+  //   }
+  //   toast.classList.add('dismissing');
+  //   toast.addEventListener('animationend', function () {
+  //     toast.remove();
+  //   });
+  // }
+
   function dismissToast(toast) {
+    if (!toast || !toast.isConnected) return;
+
     var message = toast.querySelector('.toast__message');
+
     if (message) {
       activeToastMessages.delete(message.textContent.trim());
     }
+
     toast.classList.add('dismissing');
+
+    // Fallback: remove even if the CSS animation does not fire
     toast.addEventListener('animationend', function () {
       toast.remove();
-    });
+    }, { once: true });
+
+    // Fallback timer if no animation is defined
+    setTimeout(function () {
+      if (toast.isConnected) {
+        toast.remove();
+      }
+    }, 400);
   }
 
   // Initialize existing toasts (from Django messages)
@@ -194,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function () {
   applyTheme(getPreferredTheme());
 
   // Attach click listeners to all theme toggle buttons
-  document.addEventListener('click', function(e) {
+  document.addEventListener('click', function (e) {
     var toggleBtn = e.target.closest('.theme-toggle');
     if (toggleBtn) {
       var current = document.documentElement.getAttribute('data-theme') || 'light';
@@ -205,7 +229,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Listen for OS system theme changes if not overridden
   if (window.matchMedia) {
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
       if (!localStorage.getItem('labsphere_theme')) {
         applyTheme(e.matches ? 'dark' : 'light');
       }
