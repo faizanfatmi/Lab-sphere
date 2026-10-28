@@ -1043,7 +1043,8 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     function getMonacoLang(lang) {
-        if (lang === 'c' || lang === 'cpp') return 'cpp';
+        if (lang === 'c') return 'c';       // Monaco has a dedicated 'c' mode
+        if (lang === 'cpp') return 'cpp';
         if (lang === 'java') return 'java';
         return 'python';
     }
@@ -1267,7 +1268,9 @@ document.addEventListener('DOMContentLoaded', function() {
               badge.style.color = isAccepted ? '#059669' : '#dc2626';
               badge.style.borderColor = isAccepted ? '#a7f3d0' : '#fca5a5';
 
-              var timeMs = data.execution_time_ms || data.time_ms || 61;
+              // Use explicit null/undefined check so 0ms executions aren't replaced by the 61ms placeholder
+              var timeMs = (data.execution_time_ms != null) ? data.execution_time_ms
+                         : (data.time_ms != null) ? data.time_ms : 0;
               timeText.textContent = 'Time: ' + timeMs + 'ms';
 
               var out = data.stdout || '';

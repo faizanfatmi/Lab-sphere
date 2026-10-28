@@ -691,11 +691,11 @@ def api_get_draft(request):
         if language == 'c':
             code = getattr(question, 'c_starter_code', '') or "// C Solution\n#include <stdio.h>\n\nint main() {\n    // Write your code here\n    \n    return 0;\n}"
         elif language == 'cpp':
-            code = question.cpp_starter_code
+            code = question.cpp_starter_code or "// C++ Solution\n#include <iostream>\nusing namespace std;\n\nint main() {\n    // Write your code here\n    \n    return 0;\n}"
         elif language == 'java':
-            code = question.java_starter_code
+            code = question.java_starter_code or "// Java Solution\nimport java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        // Write your code here\n        \n    }\n}"
         else:
-            code = question.python_starter_code
+            code = question.python_starter_code or "# Python Solution\ndef main():\n    # Write your code here\n    pass\n\nif __name__ == '__main__':\n    main()"
 
     return JsonResponse({'code': code})
 

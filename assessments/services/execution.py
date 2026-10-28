@@ -121,7 +121,7 @@ class Judge0Executor(BaseExecutor):
                 compile_output=compile_output,
                 time_ms=time_ms,
                 memory_kb=memory_kb,
-                is_success=(status_id == 3 or not (stderr or compile_output))
+                is_success=(status_id == 3)  # Only truly Accepted counts as success
             )
         except Exception as e:
             return ExecutionResult(
@@ -204,7 +204,8 @@ class SandboxedProcessExecutor(BaseExecutor):
 
                 # Use gcc for C, g++ for C++
                 compiler = "gcc" if is_c else "g++"
-                compile_cmd = [compiler, "-O2", "-Wall", src_path, "-o", exe_path]
+                # -lm links libm so C programs using <math.h> (sqrt, pow, etc.) work
+                compile_cmd = [compiler, "-O2", "-Wall", src_path, "-o", exe_path] + (["-lm"] if is_c else [])
                 try:
                     compile_proc = subprocess.run(
                         compile_cmd,
@@ -251,8 +252,9 @@ class SandboxedProcessExecutor(BaseExecutor):
                 except subprocess.TimeoutExpired:
                     return ExecutionResult(status="COMPILATION_ERROR", stderr="Compilation timed out.")
 
-                # Run executable
+                # Run executable — reset start_time here so compile time is excluded
                 try:
+                    run_start = time.perf_counter()
                     proc = subprocess.run(
                         [exe_path],
                         input=stdin.encode("utf-8") if stdin else b"",
@@ -261,7 +263,7 @@ class SandboxedProcessExecutor(BaseExecutor):
                         env=clean_env,
                         cwd=tmpdir
                     )
-                    elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+                    elapsed_ms = int((time.perf_counter() - run_start) * 1000)
                     stdout = proc.stdout[:self.MAX_OUTPUT_BYTES].decode("utf-8", errors="replace")
                     stderr = proc.stderr[:self.MAX_OUTPUT_BYTES].decode("utf-8", errors="replace")
 
@@ -396,10 +398,10 @@ def get_executor() -> BaseExecutor:
 
 
 def normalize_output(text: str) -> str:
-    """Normalize output for fair comparison (stripping whitespace and normalizing linebreaks)."""
+    """Normalize output for fair comparison (stripping leading+trailing whitespace per line and normalizing linebreaks)."""
     if not text:
         return ""
-    lines = [line.rstrip() for line in text.strip().splitlines()]
+    lines = [line.strip() for line in text.strip().splitlines()]
     return "\n".join(lines)
 
 
